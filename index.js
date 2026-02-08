@@ -1,4 +1,4 @@
-require("dotenv").config(); // top of index.js
+require("dotenv").config(); // Load .env variables
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -8,27 +8,39 @@ const centerRoutes = require("./routes/centerRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 
 // ================== SUPABASE CLIENT ==================
-const supabase = require('@supabase/supabase-js').createClient(
+const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
 
 // ================== EXPRESS APP ==================
 const app = express();
 
 // ================== CORS ==================
+const allowedOrigins = [
+  "https://sindhuja-colloction.vercel.app", // frontend prod
+  "http://localhost:5173"                   // frontend dev
+];
+
 app.use(
   cors({
-    origin: [
-      "https://sindhuja-colloction.vercel.app", // frontend prod
-      "http://localhost:5173"                    // frontend dev
-    ],
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = "The CORS policy for this site does not allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+
+// ✅ Handle preflight requests for all routes
+app.options("*", cors());
 
 // ================== MIDDLEWARE ==================
 app.use(express.json());
@@ -52,15 +64,11 @@ app.post("/api/login", async (req, res) => {
       .eq("email", email.toLowerCase())
       .single();
 
-    if (error || !user)
-      return res.status(401).json({ message: "Invalid credentials" });
-
-    if (user.blocked)
-      return res.status(403).json({ message: "Account blocked" });
+    if (error || !user) return res.status(401).json({ message: "Invalid credentials" });
+    if (user.blocked) return res.status(403).json({ message: "Account blocked" });
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match)
-      return res.status(401).json({ message: "Wrong password" });
+    if (!match) return res.status(401).json({ message: "Wrong password" });
 
     res.json({
       id: user.id,
@@ -77,7 +85,6 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/members/:centerId", async (req, res) => {
   try {
     const { centerId } = req.params;
-
     const { data, error } = await supabase
       .from("members")
       .select(`
@@ -110,17 +117,20 @@ app.get("/api/members/:centerId", async (req, res) => {
 
 // ================== ACTIVATE CENTER ==================
 app.put("/api/centers/:id/activate", async (req, res) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from("centers")
+      .update({ is_active: true })
+      .eq("id", id);
 
-  const { data, error } = await supabase
-    .from("centers")
-    .update({ is_active: true })
-    .eq("id", id);
+    if (error) return res.status(500).json({ message: "Failed to activate center" });
 
-  if (error)
-    return res.status(500).json({ message: "Failed to activate center" });
-
-  res.json({ success: true, data });
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("ACTIVATE CENTER ERROR 👉", err);
+    res.status(500).json({ message: "Failed to activate center" });
+  }
 });
 
 // ================== ROUTES ==================
