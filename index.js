@@ -1,35 +1,43 @@
 require("dotenv").config();
-
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
-const { supabase } = require("./supabaseClient");
+const { createClient } = require("@supabase/supabase-js");
 const collectionRoutes = require("./routes/collectionRoutes");
 const centerRoutes = require("./routes/centerRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 
+// ================== SUPABASE CLIENT ==================
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
+// ================== EXPRESS APP ==================
 const app = express();
 
-/* ================= MIDDLEWARE ================= */
+// ================== CORS ==================
 app.use(
   cors({
     origin: [
-      "https://sindhuja-colloction.vercel.app",
-      "http://localhost:5173"
+      "https://sindhuja-colloction.vercel.app", // frontend prod
+      "http://localhost:5173"                    // frontend dev
     ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
 );
 
+// ================== MIDDLEWARE ==================
 app.use(express.json());
 
-/* ================= HEALTH ================= */
+// ================== HEALTH CHECK ==================
 app.get("/", (req, res) => {
   res.json({ status: "API running ✅" });
 });
 
-/* ================= LOGIN ================= */
+// ================== LOGIN ROUTE ==================
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -64,8 +72,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-
-/* ================= MEMBERS ================= */
+// ================== MEMBERS ROUTE ==================
 app.get("/api/members/:centerId", async (req, res) => {
   try {
     const { centerId } = req.params;
@@ -95,10 +102,12 @@ app.get("/api/members/:centerId", async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    console.error("MEMBERS ERROR 👉", err);
     res.status(500).json({ message: "Failed to fetch members" });
   }
 });
 
+// ================== ACTIVATE CENTER ==================
 app.put("/api/centers/:id/activate", async (req, res) => {
   const { id } = req.params;
 
@@ -107,23 +116,19 @@ app.put("/api/centers/:id/activate", async (req, res) => {
     .update({ is_active: true })
     .eq("id", id);
 
-  if (error) return res.status(500).json({ message: "Failed to activate center" });
+  if (error)
+    return res.status(500).json({ message: "Failed to activate center" });
 
   res.json({ success: true, data });
 });
 
-
-/* ================= HEALTH ================= */
-app.get("/", (req, res) => {
-  res.json({ status: "API running ✅" });
-});
-
-/* ================= ROUTES ================= */
+// ================== ROUTES ==================
 app.use("/api/centers", centerRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/schedule", scheduleRoutes);
-/* ================= START ================= */
+
+// ================== START SERVER ==================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-)
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
