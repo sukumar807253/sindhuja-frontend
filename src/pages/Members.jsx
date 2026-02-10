@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000/api/collections";
+const API = import.meta.env.VITE_API_URL; // ✅ production-safe
 
 export default function Members() {
   const { centerId } = useParams();
@@ -25,7 +25,7 @@ export default function Members() {
           loan_id: m.loan_id,
           name: m.name,
           weekNo: m.week_no,
-          collection_date: m.collection_date, // ✅ FIXED NAME
+          collection_date: m.collection_date || "-", // ✅ fallback
           weeklyAmount: Number(m.weekly_amount) || 0,
           manualAmount: Number(m.weekly_amount) || 0
         }));
@@ -71,7 +71,7 @@ export default function Members() {
           member_id: m.id,
           loan_id: m.loan_id,
           week_no: m.weekNo,
-          collection_date: m.collection_date, // ✅ CONSISTENT
+          collection_date: m.collection_date,
           amount: Number(m.manualAmount) || 0,
           name: m.name
         }))
@@ -95,7 +95,7 @@ export default function Members() {
           </p>
 
           <p className="text-indigo-600 font-semibold">
-            Collection Date: {m.collection_date || "-"}
+            Collection Date: {m.collection_date}
           </p>
 
           <label className="block text-sm mt-2">Collection Amount</label>

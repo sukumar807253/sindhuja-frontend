@@ -2,6 +2,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 
+const API = import.meta.env.VITE_API_URL; // ✅ production-safe
+
 export default function Collection() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,7 +58,8 @@ export default function Collection() {
         status: Number(m.manualAmount) > 0 ? "paid" : "pending" // ✅ 0 amount -> pending
       }));
 
-      await axios.post("http://localhost:5000/api/collections/pay-batch", {
+
+      await axios.post(`${API}/collections/pay-batch`, {
         collection: payload,
         denomination: notes
       });

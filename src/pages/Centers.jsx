@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL; // ✅ production-safe
 
 export default function Centers({ user }) {
   const [centers, setCenters] = useState([]);

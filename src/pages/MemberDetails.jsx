@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const API = import.meta.env.VITE_API_URL; // ✅ use env
+
 export default function MemberDetails() {
   const { memberId } = useParams();
   const [member, setMember] = useState(null);
@@ -11,8 +13,12 @@ export default function MemberDetails() {
   // Fetch member info
   useEffect(() => {
     const fetchMember = async () => {
-      const res = await axios.get(`http://localhost:5000/api/member/${memberId}`);
-      setMember(res.data);
+      try {
+        const res = await axios.get(`${API}/member/${memberId}`);
+        setMember(res.data);
+      } catch (err) {
+        console.error("Failed to fetch member", err);
+      }
     };
     fetchMember();
   }, [memberId]);
@@ -20,8 +26,12 @@ export default function MemberDetails() {
   // Fetch member's loan/collection info
   useEffect(() => {
     const fetchLoans = async () => {
-      const res = await axios.get(`http://localhost:5000/api/collections/${memberId}`);
-      setLoans(res.data);
+      try {
+        const res = await axios.get(`${API}/collections/${memberId}`);
+        setLoans(res.data);
+      } catch (err) {
+        console.error("Failed to fetch loans", err);
+      }
     };
     fetchLoans();
   }, [memberId]);
@@ -29,14 +39,14 @@ export default function MemberDetails() {
   if (!member) return <div className="p-6">Loading member details...</div>;
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-4xl mx-auto">
       <button className="mb-4 text-blue-500" onClick={() => navigate(-1)}>
         &larr; Back
       </button>
 
       <h2 className="text-2xl font-bold mb-4">{member.name}'s Loan Details</h2>
-      <p>Email: {member.email}</p>
-      <p>Phone: {member.phone}</p>
+      <p>Email: {member.email || "N/A"}</p>
+      <p>Phone: {member.phone || "N/A"}</p>
 
       <h3 className="text-xl font-semibold mt-4 mb-2">Loans & Collections</h3>
       <table className="min-w-full border">
