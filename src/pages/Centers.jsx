@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_URL; // ✅ production-safe
+// ✅ Production-safe with fallback to localhost for dev
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Centers({ user }) {
   const [centers, setCenters] = useState([]);
@@ -18,14 +19,17 @@ export default function Centers({ user }) {
       setLoading(true);
       setError("");
 
-      const url = isAdmin
-        ? `${API}/centers`
-        : `${API}/centers/active`;
+      // Use admin route or active route for normal users
+      let url = `${API}/centers`;
+      if (!isAdmin) {
+        // Only request /active if backend supports it
+        url = `${API}/centers/active`;
+      }
 
       const res = await axios.get(url);
       setCenters(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch Centers Error:", err);
       setError("Unable to load centers");
     } finally {
       setLoading(false);
@@ -36,11 +40,9 @@ export default function Centers({ user }) {
     fetchCenters();
   }, [fetchCenters]);
 
-  // 🔍 FILTER LOGIC
+  // 🔍 Filter centers by search input
   const filteredCenters = centers.filter(center =>
-    center.name
-      ?.toLowerCase()
-      .includes(search.trim().toLowerCase())
+    center.name?.toLowerCase().includes(search.trim().toLowerCase())
   );
 
   return (
@@ -58,15 +60,14 @@ export default function Centers({ user }) {
         className="w-full border px-3 py-2 rounded mb-4 focus:outline-none focus:ring"
       />
 
+      {/* STATUS MESSAGES */}
       {loading && <p>Loading...</p>}
-      {!loading && error && (
-        <p className="text-red-500">{error}</p>
-      )}
-
+      {!loading && error && <p className="text-red-500">{error}</p>}
       {!loading && !error && filteredCenters.length === 0 && (
         <p>No centers found</p>
       )}
 
+      {/* CENTERS LIST */}
       {!loading && filteredCenters.length > 0 && (
         <ul className="space-y-2">
           {filteredCenters.map(center => (
@@ -77,7 +78,7 @@ export default function Centers({ user }) {
             >
               <span>{center.name}</span>
 
-              {/* 👮 Admin-ku status kaattu */}
+              {/* 👮 Admin sees status */}
               {isAdmin && (
                 <span
                   className={`text-xs px-2 py-1 rounded ${
