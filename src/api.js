@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://sindhuja-colloction1.onrender.com",
-  withCredentials: true
+  baseURL: "https://sindhuja-colloction1.onrender.com/api"
 });
 
 export default API;
