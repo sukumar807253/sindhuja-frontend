@@ -2,35 +2,31 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// ✅ Production-safe with fallback to localhost for dev
+// ✅ Environment-safe API URL
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Centers({ user }) {
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState(""); // 🔍 search state
+  const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
   const isAdmin = user?.isAdmin === true;
 
+  // 🔄 Fetch centers
   const fetchCenters = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      // Use admin route or active route for normal users
-      let url = `${API}/centers`;
-      if (!isAdmin) {
-        // Only request /active if backend supports it
-        url = `${API}/centers/active`;
-      }
+      const url = isAdmin ? `${API}/centers` : `${API}/centers/active`;
 
       const res = await axios.get(url);
       setCenters(res.data || []);
     } catch (err) {
       console.error("Fetch Centers Error:", err);
-      setError("Unable to load centers");
+      setError("Unable to load centers. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +36,7 @@ export default function Centers({ user }) {
     fetchCenters();
   }, [fetchCenters]);
 
-  // 🔍 Filter centers by search input
+  // 🔍 Filter logic
   const filteredCenters = centers.filter(center =>
     center.name?.toLowerCase().includes(search.trim().toLowerCase())
   );
@@ -51,23 +47,23 @@ export default function Centers({ user }) {
         {isAdmin ? "All Centers (Admin)" : "Centers"}
       </h2>
 
-      {/* 🔍 SEARCH BOX */}
+      {/* Search */}
       <input
         type="text"
         placeholder="Search center..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={e => setSearch(e.target.value)}
         className="w-full border px-3 py-2 rounded mb-4 focus:outline-none focus:ring"
       />
 
-      {/* STATUS MESSAGES */}
-      {loading && <p>Loading...</p>}
+      {/* Status messages */}
+      {loading && <p>Loading centers...</p>}
       {!loading && error && <p className="text-red-500">{error}</p>}
       {!loading && !error && filteredCenters.length === 0 && (
         <p>No centers found</p>
       )}
 
-      {/* CENTERS LIST */}
+      {/* Centers list */}
       {!loading && filteredCenters.length > 0 && (
         <ul className="space-y-2">
           {filteredCenters.map(center => (
@@ -78,7 +74,6 @@ export default function Centers({ user }) {
             >
               <span>{center.name}</span>
 
-              {/* 👮 Admin sees status */}
               {isAdmin && (
                 <span
                   className={`text-xs px-2 py-1 rounded ${
