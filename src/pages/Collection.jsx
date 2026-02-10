@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 
 // ✅ Use environment variable for API
@@ -8,6 +8,7 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 export default function Collection() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false); // Button loading state
 
   // Receive data from Members page
   const initialMembers = location.state?.collection ?? [];
@@ -50,6 +51,8 @@ export default function Collection() {
     }
 
     try {
+      setLoading(true); // ✅ start loading
+
       const payload = members.map(m => ({
         member_id: m.member_id,
         loan_id: m.loan_id,
@@ -68,6 +71,8 @@ export default function Collection() {
     } catch (err) {
       console.error(err);
       alert(err?.response?.data?.message || "❌ Failed to save collection");
+    } finally {
+      setLoading(false); // ✅ stop loading
     }
   };
 
@@ -106,11 +111,17 @@ export default function Collection() {
         Total Notes Value: ₹ {totalNotes}
       </p>
 
+      {/* ✅ Normal loading button */}
       <button
         onClick={saveCollection}
-        className="mt-4 w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
+        disabled={loading} // prevent multiple clicks
+        className={`mt-4 w-full py-2 rounded text-white ${
+          loading
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-indigo-600 hover:bg-indigo-700"
+        }`}
       >
-        Save Collection
+        {loading ? "Saving..." : "Save Collection"}
       </button>
     </div>
   );
