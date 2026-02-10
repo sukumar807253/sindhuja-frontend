@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_URL; // ✅ production-safe
+// ✅ Use environment variable for API
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Collection() {
   const location = useLocation();
@@ -49,15 +50,13 @@ export default function Collection() {
     }
 
     try {
-      // Prepare collection array with correct status
       const payload = members.map(m => ({
         member_id: m.member_id,
         loan_id: m.loan_id,
         week_no: m.week_no,
         amount: Number(m.manualAmount),
-        status: Number(m.manualAmount) > 0 ? "paid" : "pending" // ✅ 0 amount -> pending
+        status: Number(m.manualAmount) > 0 ? "paid" : "pending"
       }));
-
 
       await axios.post(`${API}/collections/pay-batch`, {
         collection: payload,
@@ -68,7 +67,7 @@ export default function Collection() {
       navigate(-1);
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to save collection");
+      alert(err?.response?.data?.message || "❌ Failed to save collection");
     }
   };
 
@@ -77,7 +76,7 @@ export default function Collection() {
       <h2 className="text-xl font-bold mb-4">Collection</h2>
 
       <p className="mb-3 font-semibold text-green-700">
-        Total Collection Amount: ₹ {totalCollection} {/* Live total */}
+        Total Collection Amount: ₹ {totalCollection}
       </p>
 
       <h3 className="font-semibold mt-4 mb-2">Denominations</h3>
@@ -99,7 +98,11 @@ export default function Collection() {
         </div>
       ))}
 
-      <p className={`font-bold mt-4 ${totalNotes === totalCollection ? "text-green-700" : "text-red-600"}`}>
+      <p
+        className={`font-bold mt-4 ${
+          totalNotes === totalCollection ? "text-green-700" : "text-red-600"
+        }`}
+      >
         Total Notes Value: ₹ {totalNotes}
       </p>
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_URL; // ✅ production-safe
+// ✅ Use environment variable for API URL (works for dev & prod)
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Members() {
   const { centerId } = useParams();
@@ -17,23 +18,29 @@ export default function Members() {
     if (!centerId) return;
 
     const fetchMembers = async () => {
-      try {
-        const res = await axios.get(`${API}/members/${centerId}`);
+      setLoading(true);
+      setError("");
 
-        const formatted = res.data.map(m => ({
+      try {
+        const res = await axios.get(`${API}/collections/members/${centerId}`);
+
+        // ✅ Ensure res.data is an array
+        const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+
+        const formatted = data.map((m) => ({
           id: m.member_id,
           loan_id: m.loan_id,
           name: m.name,
           weekNo: m.week_no,
-          collection_date: m.collection_date || "-", // ✅ fallback
+          collection_date: m.collection_date || "-", // fallback
           weeklyAmount: Number(m.weekly_amount) || 0,
-          manualAmount: Number(m.weekly_amount) || 0
+          manualAmount: Number(m.weekly_amount) || 0,
         }));
 
         setMembers(formatted);
       } catch (err) {
         console.error(err);
-        setError("Failed to load weekly amount");
+        setError(err?.response?.data?.message || "Failed to load weekly amounts");
       } finally {
         setLoading(false);
       }
@@ -44,21 +51,19 @@ export default function Members() {
 
   /* ================= UPDATE AMOUNT ================= */
   const updateAmount = (id, value) => {
-    const amt = value === "" ? "" : Number(value);
+    const amt = value === "" ? "" : Math.max(0, Number(value));
 
-    setMembers(prev =>
-      prev.map(m =>
-        m.id === id
-          ? { ...m, manualAmount: isNaN(amt) ? 0 : amt }
-          : m
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, manualAmount: isNaN(amt) ? 0 : amt } : m
       )
     );
   };
 
   /* ================= TOTAL ================= */
-  const totalCollection = members.reduce(
-    (sum, m) => sum + (Number(m.manualAmount) || 0),
-    0
+  const totalCollection = useMemo(
+    () => members.reduce((sum, m) => sum + (Number(m.manualAmount) || 0), 0),
+    [members]
   );
 
   /* ================= COLLECT ================= */
@@ -67,26 +72,27 @@ export default function Members() {
       state: {
         centerId,
         total: totalCollection,
-        collection: members.map(m => ({
+        collection: members.map((m) => ({
           member_id: m.id,
           loan_id: m.loan_id,
           week_no: m.weekNo,
           collection_date: m.collection_date,
           amount: Number(m.manualAmount) || 0,
-          name: m.name
-        }))
-      }
+          name: m.name,
+        })),
+      },
     });
   };
 
   if (loading) return <div className="p-6 text-center">Loading...</div>;
-  if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
+  if (error)
+    return <div className="p-6 text-center text-red-600">{error}</div>;
 
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Weekly Collection</h2>
 
-      {members.map(m => (
+      {members.map((m) => (
         <div key={m.id} className="border p-3 rounded mb-3">
           <p className="font-semibold">{m.name}</p>
 
@@ -103,7 +109,7 @@ export default function Members() {
             type="number"
             min="0"
             value={m.manualAmount === "" ? "" : String(m.manualAmount)}
-            onChange={e => updateAmount(m.id, e.target.value)}
+            onChange={(e) => updateAmount(m.id, e.target.value)}
             className="border p-1 rounded w-full mt-1"
           />
         </div>
