@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// ✅ Environment-safe API URL
+// ✅ Production + Local safe API URL
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function Centers({ user }) {
@@ -14,12 +14,13 @@ export default function Centers({ user }) {
   const navigate = useNavigate();
   const isAdmin = user?.isAdmin === true;
 
-  // 🔄 Fetch centers
+  // 🔄 Fetch centers from backend
   const fetchCenters = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
+      // Admin gets all centers, normal user gets only active
       const url = isAdmin ? `${API}/centers` : `${API}/centers/active`;
 
       const res = await axios.get(url);
@@ -36,7 +37,7 @@ export default function Centers({ user }) {
     fetchCenters();
   }, [fetchCenters]);
 
-  // 🔍 Filter logic
+  // 🔍 Search filter
   const filteredCenters = centers.filter(center =>
     center.name?.toLowerCase().includes(search.trim().toLowerCase())
   );
@@ -47,7 +48,7 @@ export default function Centers({ user }) {
         {isAdmin ? "All Centers (Admin)" : "Centers"}
       </h2>
 
-      {/* Search */}
+      {/* Search Box */}
       <input
         type="text"
         placeholder="Search center..."
@@ -56,14 +57,14 @@ export default function Centers({ user }) {
         className="w-full border px-3 py-2 rounded mb-4 focus:outline-none focus:ring"
       />
 
-      {/* Status messages */}
+      {/* Status Messages */}
       {loading && <p>Loading centers...</p>}
       {!loading && error && <p className="text-red-500">{error}</p>}
       {!loading && !error && filteredCenters.length === 0 && (
         <p>No centers found</p>
       )}
 
-      {/* Centers list */}
+      {/* Centers List */}
       {!loading && filteredCenters.length > 0 && (
         <ul className="space-y-2">
           {filteredCenters.map(center => (
